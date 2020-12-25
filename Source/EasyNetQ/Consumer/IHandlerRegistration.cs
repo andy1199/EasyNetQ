@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EasyNetQ.Consumer
 {
@@ -12,7 +10,7 @@ namespace EasyNetQ.Consumer
         /// <typeparam name="T">The message type</typeparam>
         /// <param name="handler">The handler</param>
         /// <returns></returns>
-        IHandlerRegistration Add<T>(Func<IMessage<T>, MessageReceivedInfo, CancellationToken, Task> handler);
+        IHandlerRegistration Add<T>(IMessageHandler<T> handler);
 
         /// <summary>
         /// Set to true if the handler collection should throw an EasyNetQException when no
@@ -22,26 +20,27 @@ namespace EasyNetQ.Consumer
         bool ThrowOnNoMatchingHandler { get; set; }
     }
 
+    /// <inheritdoc />
     public interface IHandlerCollection : IHandlerRegistration
     {
         /// <summary>
         /// Retrieve a handler from the collection.
         /// If a matching handler cannot be found, the handler collection will either throw
-        /// an EasyNetQException, or return null, depending on the value of the 
+        /// an EasyNetQException, or return null, depending on the value of the
         /// ThrowOnNoMatchingHandler property.
         /// </summary>
         /// <typeparam name="T">The type of handler to return</typeparam>
         /// <returns>The handler</returns>
-        Func<IMessage<T>, MessageReceivedInfo, CancellationToken, Task> GetHandler<T>();
+        IMessageHandler<T> GetHandler<T>();
 
         /// <summary>
         /// Retrieve a handler from the collection.
         /// If a matching handler cannot be found, the handler collection will either throw
-        /// an EasyNetQException, or return null, depending on the value of the 
+        /// an EasyNetQException, or return null, depending on the value of the
         /// ThrowOnNoMatchingHandler property.
         /// </summary>
         /// <param name="messageType">The type of handler to return</param>
         /// <returns>The handler</returns>
-        Func<IMessage, MessageReceivedInfo, CancellationToken, Task> GetHandler(Type messageType);
+        IMessageHandler GetHandler(Type messageType);
     }
 }

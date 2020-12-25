@@ -1,15 +1,14 @@
 ﻿// ReSharper disable InconsistentNaming
 
 using System;
-using EasyNetQ.Tests;
 using Xunit;
 
 namespace EasyNetQ.Hosepipe.Tests
 {
     public class MessageReaderTests
     {
-        private IMessageReader messageReader;
-        private IConventions conventions;
+        private readonly IMessageReader messageReader;
+        private readonly IConventions conventions;
 
         public MessageReaderTests()
         {
@@ -22,7 +21,7 @@ namespace EasyNetQ.Hosepipe.Tests
         /// 2. Run this test
         /// 3. Check the output, you should see your messages.
         /// </summary>
-        [Fact][Explicit(@"Needs message files in 'C:\temp\MessageOutput'")]
+        [Fact][Traits.Explicit(@"Needs message files in 'C:\temp\MessageOutput'")]
         public void Should_be_able_to_read_messages_from_disk()
         {
             var parameters = new QueueParameters
@@ -40,7 +39,7 @@ namespace EasyNetQ.Hosepipe.Tests
             }
         }
 
-        [Fact][Explicit(@"Needs message files in 'C:\temp\MessageOutput'")]
+        [Fact][Traits.Explicit(@"Needs message files in 'C:\temp\MessageOutput'")]
         public void Should_be_able_to_read_only_error_messages()
         {
             var parameters = new QueueParameters
@@ -48,7 +47,7 @@ namespace EasyNetQ.Hosepipe.Tests
                 MessagesOutputDirectory = @"C:\temp\MessageOutput"
             };
 
-            var messages = messageReader.ReadMessages(parameters, conventions.ErrorQueueNamingConvention(new MessageReceivedInfo()));
+            var messages = messageReader.ReadMessages(parameters, conventions.ErrorQueueNamingConvention(null));
             foreach (var message in messages)
             {
                 Console.WriteLine(message.Body);

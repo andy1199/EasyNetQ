@@ -1,8 +1,5 @@
 using System;
 using System.Collections.Generic;
-#if NETFX
-using System.Configuration;
-#endif
 using EasyNetQ.ConnectionString;
 using EasyNetQ.DI;
 
@@ -13,52 +10,13 @@ namespace EasyNetQ
     /// </summary>
     public static class RabbitHutch
     {
-#if NETFX
-        /// <summary>
-        /// Creates a new instance of <see cref="RabbitBus"/>.
-        /// The RabbitMQ broker is defined in the connection string named 'rabbit'.
-        /// </summary>
-        /// <param name="registerServices">
-        /// Override default services. For example, to override the default <see cref="ISerializer"/>:
-        /// RabbitHutch.CreateBus("host=localhost", x => x.Register{ISerializer}(mySerializer));
-        /// </param>
-        /// <returns>
-        /// A new <see cref="RabbitBus"/> instance.
-        /// </returns>
-        public static IBus CreateBus(Action<IServiceRegister> registerServices)
-        {
-            var rabbitConnection = ConfigurationManager.ConnectionStrings["rabbit"];
-            if (rabbitConnection == null)
-            {
-                throw new EasyNetQException(
-                    "Could not find a connection string for RabbitMQ. " +
-                    "Please add a connection string in the <ConnectionStrings> section" +
-                    "of the application's configuration file. For example: " +
-                    "<add name=\"rabbit\" connectionString=\"host=localhost\" />");
-            }
-            var rabbitConnectionString = rabbitConnection.ConnectionString;
-            return CreateBus(rabbitConnectionString, registerServices);
-        }
-
-        /// <summary>
-        /// Creates a new instance of <see cref="RabbitBus"/>.
-        /// The RabbitMQ broker is defined in the connection string named 'rabbit'.
-        /// </summary>
-        /// <returns>
-        /// A new <see cref="RabbitBus"/> instance.
-        /// </returns>
-        public static IBus CreateBus()
-        {
-            return CreateBus(c => {});
-        }
-#endif
         /// <summary>
         /// Creates a new instance of <see cref="RabbitBus"/>.
         /// </summary>
         /// <param name="connectionString">
         /// The EasyNetQ connection string. Example:
         /// host=192.168.1.1;port=5672;virtualHost=MyVirtualHost;username=MyUsername;password=MyPassword;requestedHeartbeat=10
-        /// 
+        ///
         /// The following default values will be used if not specified:
         /// host=localhost;port=5672;virtualHost=/;username=guest;password=guest;requestedHeartbeat=10
         /// </param>
@@ -69,14 +27,14 @@ namespace EasyNetQ
         {
             return CreateBus(connectionString, x => { });
         }
-        
+
         /// <summary>
         /// Creates a new instance of <see cref="RabbitBus"/>.
         /// </summary>
         /// <param name="connectionString">
         /// The EasyNetQ connection string. Example:
         /// host=192.168.1.1;port=5672;virtualHost=MyVirtualHost;username=MyUsername;password=MyPassword;requestedHeartbeat=10
-        /// 
+        ///
         /// The following default values will be used if not specified:
         /// host=localhost;port=5672;virtualHost=/;username=guest;password=guest;requestedHeartbeat=10
         /// </param>
@@ -90,10 +48,10 @@ namespace EasyNetQ
         public static IBus CreateBus(string connectionString, Action<IServiceRegister> registerServices)
         {
             Preconditions.CheckNotNull(connectionString, "connectionString");
-            
+
             return CreateBus(x => x.Resolve<IConnectionStringParser>().Parse(connectionString), registerServices);
         }
-        
+
         /// <summary>
         /// Creates a new instance of <see cref="RabbitBus"/>.
         /// </summary>
@@ -113,7 +71,7 @@ namespace EasyNetQ
         /// The password to use to connect to the RabbitMQ broker.
         /// </param>
         /// <param name="requestedHeartbeat">
-        /// The initially requested heartbeat interval, in seconds; zero for none.
+        /// The initially requested heartbeat interval
         /// </param>
         /// <param name="registerServices">
         /// Override default services. For example, to override the default <see cref="ISerializer"/>:
@@ -128,7 +86,7 @@ namespace EasyNetQ
             string virtualHost,
             string username,
             string password,
-            ushort requestedHeartbeat,
+            TimeSpan requestedHeartbeat,
             Action<IServiceRegister> registerServices)
         {
             Preconditions.CheckNotNull(hostName, "hostName");
@@ -167,10 +125,10 @@ namespace EasyNetQ
         public static IBus CreateBus(ConnectionConfiguration connectionConfiguration, Action<IServiceRegister> registerServices)
         {
             Preconditions.CheckNotNull(connectionConfiguration, "connectionConfiguration");
-            
+
             return CreateBus(_ => connectionConfiguration, registerServices);
         }
-        
+
         /// <summary>
         /// Creates a new instance of <see cref="RabbitBus"/>.
         /// </summary>
@@ -190,7 +148,7 @@ namespace EasyNetQ
             RegisterBus(container, connectionConfigurationFactory, registerServices);
             return container.Resolve<IBus>();
         }
-        
+
         /// <summary>
         /// Registers components of a <see cref="RabbitBus"/>.
         /// </summary>
@@ -202,9 +160,6 @@ namespace EasyNetQ
         /// Override default services. For example, to override the default <see cref="ISerializer"/>:
         /// RabbitHutch.CreateBus("host=localhost", x => x.Register{ISerializer}(mySerializer));
         /// </param>
-        /// <returns>
-        /// A new <see cref="RabbitBus"/> instance.
-        /// </returns>
         public static void RegisterBus(IServiceRegister serviceRegister,
                                        Func<IServiceResolver, ConnectionConfiguration> connectionConfigurationFactory,
                                        Action<IServiceRegister> registerServices)
@@ -212,14 +167,14 @@ namespace EasyNetQ
             Preconditions.CheckNotNull(serviceRegister, "serviceRegister");
             Preconditions.CheckNotNull(connectionConfigurationFactory, "connectionConfiguration");
             Preconditions.CheckNotNull(registerServices, "registerServices");
-            
+
             serviceRegister.Register(c =>
             {
-                var connectionConfiguration = connectionConfigurationFactory.Invoke(c);
-                connectionConfiguration.Validate();
-                return connectionConfiguration;
+                var configuration = connectionConfigurationFactory(c);
+                configuration.SetDefaultProperties();
+                return configuration;
             });
-            
+
             serviceRegister.RegisterDefaultServices();
             registerServices(serviceRegister);
         }

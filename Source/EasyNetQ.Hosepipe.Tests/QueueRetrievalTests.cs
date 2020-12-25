@@ -3,20 +3,18 @@
 using System;
 using System.Threading;
 using EasyNetQ.Consumer;
-using EasyNetQ.Producer;
-using EasyNetQ.Tests;
 using Xunit;
 
 namespace EasyNetQ.Hosepipe.Tests
 {
     public class QueueRetrievalTests
     {
-        [Fact][Explicit("Requires a RabbitMQ server on localhost")]
+        [Fact][Traits.Explicit("Requires a RabbitMQ server on localhost")]
         public void TryGetMessagesFromQueue()
         {
             const string queue = "EasyNetQ_Hosepipe_Tests_QueueRetrievalTests+TestMessage:EasyNetQ_Hosepipe_Tests_hosepipe";
 
-            var queueRetrieval = new QueueRetreival(new DefaultErrorMessageSerializer());
+            var queueRetrieval = new QueueRetrieval(new DefaultErrorMessageSerializer());
             var parameters = new QueueParameters
             {
                 QueueName = queue,
@@ -32,20 +30,20 @@ namespace EasyNetQ.Hosepipe.Tests
             }
         }
 
-        [Fact][Explicit("Requires a RabbitMQ server on localhost")]
+        [Fact][Traits.Explicit("Requires a RabbitMQ server on localhost")]
         public void PublishSomeMessages()
         {
             var bus = RabbitHutch.CreateBus("host=localhost");
 
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
-                bus.PubSub.Publish(new TestMessage{ Text = string.Format("\n>>>>>> Message {0}\n", i)});
+                bus.PubSub.Publish(new TestMessage { Text = string.Format("\n>>>>>> Message {0}\n", i) });
             }
 
             bus.Dispose();
         }
 
-        [Fact][Explicit("Requires a RabbitMQ server on localhost")]
+        [Fact][Traits.Explicit("Requires a RabbitMQ server on localhost")]
         public void ConsumeMessages()
         {
             var bus = RabbitHutch.CreateBus("host=localhost");

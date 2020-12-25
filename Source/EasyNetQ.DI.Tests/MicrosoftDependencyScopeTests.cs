@@ -1,5 +1,3 @@
-#if !NETFX
-
 using System;
 using EasyNetQ.DI.Microsoft;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,36 +19,6 @@ namespace EasyNetQ.DI.Tests
             Assert.Equal(shouldBeDisposed, service.Disposed);
         }
 
-        [Fact]
-        public void CreateScope_TransientServiceInSameScope_ShouldBeSingleton()
-        {
-            var services = new ServiceCollection();
-            var adapter = new ServiceCollectionAdapter(services);
-            services.AddScoped<IService, Service>();
-            var resolver = services.BuildServiceProvider().GetService<IServiceResolver>(); 
-
-            IService service1;
-            IService service2;
-            using (var scope = resolver.CreateScope())
-            {
-                service1 = scope.Resolve<IService>();
-                service2 = scope.Resolve<IService>();
-            }
-
-            Assert.Same(service1, service2);
-        }
-
-        [Fact]
-        public void CreateScope_TransientServiceInDifferentScopes_ShouldNotBeSame()
-        {
-            var resolver = CreateResolver(c => c.Register<IService, Service>(Lifetime.Transient));
-
-            var service1 = ResolveFromScope(resolver);
-            var service2 = ResolveFromScope(resolver);
-
-            Assert.NotSame(service1, service2);
-        }
-
         private static IService ResolveFromScope(IServiceResolver resolver)
         {
             using (var scope = resolver.CreateScope())
@@ -59,12 +27,12 @@ namespace EasyNetQ.DI.Tests
             }
         }
 
-        private IServiceResolver CreateResolver(Action<IServiceRegister> configure)
+        private static IServiceResolver CreateResolver(Action<IServiceRegister> configure)
         {
             var services = new ServiceCollection();
             var adapter = new ServiceCollectionAdapter(services);
             configure.Invoke(adapter);
-            return services.BuildServiceProvider().GetService<IServiceResolver>(); 
+            return services.BuildServiceProvider().GetService<IServiceResolver>();
         }
 
         private interface IService : IDisposable
@@ -81,7 +49,16 @@ namespace EasyNetQ.DI.Tests
                 Disposed = true;
             }
         }
+
+        [Fact]
+        public void CreateScope_TransientServiceInDifferentScopes_ShouldNotBeSame()
+        {
+            var resolver = CreateResolver(c => c.Register<IService, Service>(Lifetime.Transient));
+
+            var service1 = ResolveFromScope(resolver);
+            var service2 = ResolveFromScope(resolver);
+
+            Assert.NotSame(service1, service2);
+        }
     }
 }
-
-#endif

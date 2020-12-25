@@ -7,14 +7,45 @@ using EasyNetQ.MessageVersioning;
 using EasyNetQ.Producer;
 using EasyNetQ.Topology;
 using FluentAssertions;
-using Xunit;
 using NSubstitute;
+using Xunit;
 
 namespace EasyNetQ.Tests.ProducerTests
 {
-    public class PublishExchangeDeclareStrategyTests
+    public class ExchangeDeclareStrategyTests
     {
         private const string exchangeName = "the_exchange";
+
+        [Fact]
+        public void Should_declare_exchange_again_if_first_attempt_failed()
+        {
+            var exchangeDeclareCount = 0;
+
+            var advancedBus = Substitute.For<IAdvancedBus>();
+            IExchange exchange = new Exchange(exchangeName);
+
+            advancedBus.ExchangeDeclareAsync(exchangeName, Arg.Any<Action<IExchangeDeclareConfiguration>>()).Returns(
+                x => Task.FromException(new Exception()),
+                x =>
+                {
+                    exchangeDeclareCount++;
+                    return Task.FromResult(exchange);
+                });
+
+            var exchangeDeclareStrategy = new VersionedExchangeDeclareStrategy(Substitute.For<IConventions>(), advancedBus);
+            try
+            {
+                exchangeDeclareStrategy.DeclareExchange(exchangeName, ExchangeType.Topic);
+            }
+            catch (Exception)
+            {
+            }
+
+            var declaredExchange = exchangeDeclareStrategy.DeclareExchange(exchangeName, ExchangeType.Topic);
+            advancedBus.Received(2).ExchangeDeclareAsync(exchangeName, Arg.Any<Action<IExchangeDeclareConfiguration>>());
+            declaredExchange.Should().BeSameAs(exchange);
+            exchangeDeclareCount.Should().Be(1);
+        }
 
         [Fact]
         public void Should_declare_exchange_the_first_time_declare_is_called()
@@ -22,18 +53,18 @@ namespace EasyNetQ.Tests.ProducerTests
             var exchangeDeclareCount = 0;
             var advancedBus = Substitute.For<IAdvancedBus>();
             IExchange exchange = new Exchange(exchangeName);
-            advancedBus.ExchangeDeclareAsync(exchangeName, "topic")
+            advancedBus.ExchangeDeclareAsync(exchangeName, Arg.Any<Action<IExchangeDeclareConfiguration>>())
                 .Returns(x =>
                 {
                     exchangeDeclareCount++;
                     return Task.FromResult(exchange);
                 });
 
-            var publishExchangeDeclareStrategy = new PublishExchangeDeclareStrategy(Substitute.For<IConventions>(), advancedBus);
-           
+            var publishExchangeDeclareStrategy = new DefaultExchangeDeclareStrategy(Substitute.For<IConventions>(), advancedBus);
+
             var declaredExchange = publishExchangeDeclareStrategy.DeclareExchange(exchangeName, ExchangeType.Topic);
 
-            advancedBus.Received().ExchangeDeclareAsync(exchangeName, "topic");
+            advancedBus.Received().ExchangeDeclareAsync(exchangeName, Arg.Any<Action<IExchangeDeclareConfiguration>>());
             declaredExchange.Should().BeSameAs(exchange);
             exchangeDeclareCount.Should().Be(1);
         }
@@ -44,48 +75,18 @@ namespace EasyNetQ.Tests.ProducerTests
             var exchangeDeclareCount = 0;
             var advancedBus = Substitute.For<IAdvancedBus>();
             IExchange exchange = new Exchange(exchangeName);
-            advancedBus.ExchangeDeclareAsync(exchangeName, "topic") .Returns(x =>
+            advancedBus.ExchangeDeclareAsync(exchangeName, Arg.Any<Action<IExchangeDeclareConfiguration>>()).Returns(x =>
             {
                 exchangeDeclareCount++;
                 return Task.FromResult(exchange);
             });
 
-            var publishExchangeDeclareStrategy = new PublishExchangeDeclareStrategy(Substitute.For<IConventions>(), advancedBus);
-  
-            var _ = publishExchangeDeclareStrategy.DeclareExchange(exchangeName, ExchangeType.Topic);
-            var declaredExchange = publishExchangeDeclareStrategy.DeclareExchange(exchangeName, ExchangeType.Topic);
+            var exchangeDeclareStrategy = new DefaultExchangeDeclareStrategy(Substitute.For<IConventions>(), advancedBus);
 
-            advancedBus.Received().ExchangeDeclareAsync(exchangeName, "topic");
-            declaredExchange.Should().BeSameAs(exchange);
-            exchangeDeclareCount.Should().Be(1);
-        }
+            var _ = exchangeDeclareStrategy.DeclareExchange(exchangeName, ExchangeType.Topic);
+            var declaredExchange = exchangeDeclareStrategy.DeclareExchange(exchangeName, ExchangeType.Topic);
 
-        [Fact]
-        public void Should_declare_exchange_again_if_first_attempt_failed()
-        {
-            var exchangeDeclareCount = 0;
-           
-            var advancedBus = Substitute.For<IAdvancedBus>();
-            IExchange exchange = new Exchange(exchangeName);
-
-            advancedBus.ExchangeDeclareAsync(exchangeName, "topic").Returns(
-                x => TaskHelpers.FromException(new Exception()),
-                x =>
-                {
-                    exchangeDeclareCount++;
-                    return Task.FromResult(exchange);
-                });
-
-            var publishExchangeDeclareStrategy = new VersionedPublishExchangeDeclareStrategy(Substitute.For<IConventions>(), advancedBus);
-            try
-            {
-                publishExchangeDeclareStrategy.DeclareExchange(exchangeName, ExchangeType.Topic);
-            }
-            catch (Exception)
-            {
-            }
-            var declaredExchange = publishExchangeDeclareStrategy.DeclareExchange(exchangeName, ExchangeType.Topic);
-            advancedBus.Received(2).ExchangeDeclareAsync(exchangeName, "topic");
+            advancedBus.Received().ExchangeDeclareAsync(exchangeName, Arg.Any<Action<IExchangeDeclareConfiguration>>());
             declaredExchange.Should().BeSameAs(exchange);
             exchangeDeclareCount.Should().Be(1);
         }

@@ -17,10 +17,12 @@ namespace EasyNetQ
         /// The message properties.
         /// </summary>
         MessageProperties Properties { get; }
+
         /// <summary>
         /// The message body return as an object when we only have runtime types and can't use generics.
         /// </summary>
         object GetBody();
+
         /// <summary>
         /// The message <see cref="Type"/>. This is a shortcut to GetBody().GetType().
         /// </summary>
@@ -37,19 +39,23 @@ namespace EasyNetQ
 
         public Message(T body)
         {
-            Preconditions.CheckNotNull(body, "body");
             Body = body;
             Properties = new MessageProperties();
-            MessageType = body.GetType();
+            MessageType = body != null ? body.GetType() : typeof(T);
+        }
+
+        public Message()
+        {
+            Body = default;
+            Properties = new MessageProperties();
+            MessageType = typeof(T);
         }
 
         public Message(T body, MessageProperties properties)
         {
-            Preconditions.CheckNotNull(body, "body");
-            Preconditions.CheckNotNull(properties, "properties");
             Body = body;
             Properties = properties;
-            MessageType = body.GetType();
+            MessageType = body != null ? body.GetType() : typeof(T);
         }
     }
 }

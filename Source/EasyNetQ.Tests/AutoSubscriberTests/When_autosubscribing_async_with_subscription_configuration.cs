@@ -1,16 +1,12 @@
 ﻿// ReSharper disable InconsistentNaming
-using System;
 using EasyNetQ.AutoSubscribe;
-using Xunit;
+using EasyNetQ.Internals;
+using FluentAssertions;
 using NSubstitute;
-using System.Reflection;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using EasyNetQ.FluentConfiguration;
-using EasyNetQ.Internals;
-using EasyNetQ.Producer;
-using FluentAssertions;
-using NSubstitute.Extensions;
+using Xunit;
 
 namespace EasyNetQ.Tests.AutoSubscriberTests
 {
@@ -29,15 +25,14 @@ namespace EasyNetQ.Tests.AutoSubscriberTests
             var autoSubscriber = new AutoSubscriber(bus, "my_app");
 
             pubSub.SubscribeAsync(
-                    Arg.Is("MyAttrTest"), 
+                    Arg.Is("MyAttrTest"),
                     Arg.Any<Func<MessageA, CancellationToken, Task>>(),
                     Arg.Any<Action<ISubscriptionConfiguration>>()
                 )
-                .Returns(TaskHelpers.FromResult(Substitute.For<ISubscriptionResult>()).ToAwaitableDisposable())
+                .Returns(Task.FromResult(Substitute.For<ISubscriptionResult>()).ToAwaitableDisposable())
                 .AndDoes(a => capturedAction = (Action<ISubscriptionConfiguration>)a.Args()[2]);
 
-            autoSubscriber.Subscribe(new[] {typeof(MyConsumerWithAttr)});
-
+            autoSubscriber.Subscribe(new[] { typeof(MyConsumerWithAttr) });
         }
 
         public void Dispose()
@@ -49,10 +44,10 @@ namespace EasyNetQ.Tests.AutoSubscriberTests
         public void Should_have_called_subscribe()
         {
             pubSub.Received().SubscribeAsync(
-                        Arg.Any<string>(),
-                        Arg.Any<Func<MessageA, CancellationToken, Task>>(),
-                        Arg.Any<Action<ISubscriptionConfiguration>>()
-                        );
+                Arg.Any<string>(),
+                Arg.Any<Func<MessageA, CancellationToken, Task>>(),
+                Arg.Any<Action<ISubscriptionConfiguration>>()
+            );
         }
 
         [Fact]
@@ -84,8 +79,7 @@ namespace EasyNetQ.Tests.AutoSubscriberTests
         {
         }
     }
-    
-    
+
     public class When_autosubscribing_async_explicit_implementation_with_subscription_configuration_attribute : IDisposable
     {
         private readonly IBus bus;
@@ -97,18 +91,18 @@ namespace EasyNetQ.Tests.AutoSubscriberTests
             pubSub = Substitute.For<IPubSub>();
             bus = Substitute.For<IBus>();
             bus.PubSub.Returns(pubSub);
-            
+
             var autoSubscriber = new AutoSubscriber(bus, "my_app");
 
             pubSub.SubscribeAsync(
-                    Arg.Is("MyAttrTest"), 
+                    Arg.Is("MyAttrTest"),
                     Arg.Any<Func<MessageA, CancellationToken, Task>>(),
                     Arg.Any<Action<ISubscriptionConfiguration>>()
                    )
-                   .Returns(TaskHelpers.FromResult(Substitute.For<ISubscriptionResult>()).ToAwaitableDisposable())
+                   .Returns(Task.FromResult(Substitute.For<ISubscriptionResult>()).ToAwaitableDisposable())
                    .AndDoes(a => capturedAction = (Action<ISubscriptionConfiguration>)a.Args()[2]);
 
-            autoSubscriber.Subscribe(new[] {typeof(MyConsumerWithAttr)});
+            autoSubscriber.Subscribe(new[] { typeof(MyConsumerWithAttr) });
         }
 
         public void Dispose()
@@ -120,10 +114,10 @@ namespace EasyNetQ.Tests.AutoSubscriberTests
         public void Should_have_called_subscribe()
         {
             pubSub.Received().SubscribeAsync(
-                        Arg.Any<string>(),
-                        Arg.Any<Func<MessageA, CancellationToken, Task>>(),
-                        Arg.Any<Action<ISubscriptionConfiguration>>()
-                        );
+                Arg.Any<string>(),
+                Arg.Any<Func<MessageA, CancellationToken, Task>>(),
+                Arg.Any<Action<ISubscriptionConfiguration>>()
+            );
         }
 
         [Fact]
@@ -147,7 +141,7 @@ namespace EasyNetQ.Tests.AutoSubscriberTests
             [SubscriptionConfiguration(AutoDelete = true, Expires = 10, PrefetchCount = 10, Priority = 10)]
             Task IConsumeAsync<MessageA>.ConsumeAsync(MessageA message, CancellationToken cancellationToken)
             {
-                return TaskHelpers.Completed;
+                return Task.CompletedTask;
             }
         }
 

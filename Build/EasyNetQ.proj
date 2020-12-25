@@ -32,19 +32,11 @@
     <!-- Properties that are set during build to find test/merge binaries -->
     <PropertyGroup>
         <Configuration>Release</Configuration>
-        <DesktopFrameworkVersion>net451</DesktopFrameworkVersion>
-        <BinaryDesktopFolder>bin\$(Configuration)\$(DesktopFrameworkVersion)</BinaryDesktopFolder>
     </PropertyGroup>
 
     <Import Project="$(MSBuildCommunityTasksPath)\MSBuild.Community.Tasks.Targets"/>
 
-    <Target Name="Default" DependsOnTargets="Version; Build; Test; Package" />
-
-    <Target Name="Version">
-        <FileUpdate Files="$(Source)\Version.cs"
-            Regex="AssemblyVersion\(&quot;(\d+)\.(\d+)\.(\d+)\.(\d+)&quot;\)"
-            ReplacementText="AssemblyVersion(&quot;$1.$2.$3.$(BuildNumber)&quot;)" />
-    </Target>
+    <Target Name="Default" DependsOnTargets="Build; Test; Package" />
 
     <ItemGroup>
         <ProjectToBuild Include="$(Source)\EasyNetQ.sln">
@@ -53,12 +45,12 @@
     </ItemGroup>
 
     <!-- Restore all packages in solution -->
-    <Target Name="Restore" DependsOnTargets="Version">
+    <Target Name="Restore">
         <Exec WorkingDirectory="$(Source)" Command="dotnet restore %(ProjectToBuild.FullName)" />
     </Target>
 
     <!-- MSBuild only occurs after restore and version. -->
-    <Target Name="Build" DependsOnTargets="Version; Restore">
+    <Target Name="Build" DependsOnTargets="Restore">
         <MSBuild Projects="@(ProjectToBuild)" Targets="Rebuild"/>
     </Target>
     <!-- Test all projects against their targeted frameworks. Only tests that
@@ -68,16 +60,15 @@
             <TestProjects Include="$(Source)\EasyNetQ.Tests\EasyNetQ.Tests.csproj" />
             <TestProjects Include="$(Source)\EasyNetQ.DI.Tests\EasyNetQ.DI.Tests.csproj" />
             <TestProjects Include="$(Source)\EasyNetQ.Hosepipe.Tests\EasyNetQ.Hosepipe.Tests.csproj" />
-            <TestProjects Include="$(Source)\EasyNetQ.Scheduler.Tests\EasyNetQ.Scheduler.Tests.csproj" />
-            <TestProjects Include="$(Source)\EasyNetQ.Scheduler.Mongo.Tests\EasyNetQ.Scheduler.Mongo.Tests.csproj" />
-        </ItemGroup>
+            <!--<TestProjects Include="$(Source)\EasyNetQ.IntegrationTests\EasyNetQ.IntegrationTests.csproj" />-->
+</ItemGroup>
 
-        <Exec WorkingDirectory="%(TestProjects.RootDir)\%(TestProjects.Directory)"
-              Command='dotnet test --configuration $(Configuration) --no-build --filter "(Category!=Explicit) &#038; (Category!=Integration)"'
-              ContinueOnError="ErrorAndContinue" />
-    </Target>
+<Exec WorkingDirectory="%(TestProjects.RootDir)\%(TestProjects.Directory)"
+      Command='dotnet test --configuration $(Configuration) --no-build --filter "(Category!=Explicit)"'
+      ContinueOnError="ErrorAndContinue" />
+</Target>
 
-    <!-- Packaging -->
+<!-- Packaging -->
     <Target Name="Package" DependsOnTargets="Test">
         <PropertyGroup>
             <NuGetPackageDirectory>$(Package)</NuGetPackageDirectory>
@@ -85,8 +76,9 @@
         <ItemGroup>
             <ClientLibraries Include="$(Source)\EasyNetQ\EasyNetQ.csproj" />
             <ClientLibraries Include="$(Source)\EasyNetQ.DI.*\EasyNetQ.DI.*.csproj" Exclude="$(Source)\*Tests*\*.csproj" />
-       
+
             <FilesToDelete Include="$(NuGetPackageDirectory)\*.nupkg" />
+            <FilesToDelete Include="$(NuGetPackageDirectory)\*.snupkg" />
         </ItemGroup>
 
         <MakeDir Directories="$(NuGetPackageDirectory)" Condition="!Exists('$(NuGetPackageDirectory)')" />

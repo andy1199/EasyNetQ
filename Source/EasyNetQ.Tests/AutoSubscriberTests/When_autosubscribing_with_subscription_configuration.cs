@@ -1,15 +1,12 @@
 ﻿// ReSharper disable InconsistentNaming
-using System;
 using EasyNetQ.AutoSubscribe;
-using Xunit;
+using EasyNetQ.Internals;
+using FluentAssertions;
 using NSubstitute;
-using System.Reflection;
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using EasyNetQ.FluentConfiguration;
-using EasyNetQ.Internals;
-using EasyNetQ.Producer;
-using FluentAssertions;
+using Xunit;
 
 namespace EasyNetQ.Tests.AutoSubscriberTests
 {
@@ -20,22 +17,22 @@ namespace EasyNetQ.Tests.AutoSubscriberTests
         private IPubSub pubSub;
 
         public When_autosubscribing_with_subscription_configuration_attribute()
-        {            
+        {
             pubSub = Substitute.For<IPubSub>();
             bus = Substitute.For<IBus>();
             bus.PubSub.Returns(pubSub);
-            
+
             var autoSubscriber = new AutoSubscriber(bus, "my_app");
 
             pubSub.SubscribeAsync(
-                    Arg.Is("MyAttrTest"), 
+                    Arg.Is("MyAttrTest"),
                     Arg.Any<Func<MessageA, CancellationToken, Task>>(),
                     Arg.Any<Action<ISubscriptionConfiguration>>()
                 )
-                .Returns(TaskHelpers.FromResult(Substitute.For<ISubscriptionResult>()).ToAwaitableDisposable())
+                .Returns(Task.FromResult(Substitute.For<ISubscriptionResult>()).ToAwaitableDisposable())
                 .AndDoes(a => capturedAction = (Action<ISubscriptionConfiguration>)a.Args()[2]);
 
-            autoSubscriber.Subscribe(new [] {typeof(MyConsumerWithAttr)});
+            autoSubscriber.Subscribe(new[] { typeof(MyConsumerWithAttr) });
         }
 
         public void Dispose()
@@ -57,7 +54,7 @@ namespace EasyNetQ.Tests.AutoSubscriberTests
         public void Should_have_called_subscribe_with_action_capable_of_configuring_subscription()
         {
             var subscriptionConfiguration = new SubscriptionConfiguration(1);
-            
+
             capturedAction(subscriptionConfiguration);
 
             subscriptionConfiguration.AutoDelete.Should().BeTrue();

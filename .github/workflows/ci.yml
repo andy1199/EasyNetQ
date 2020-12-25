@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+
+jobs:
+  build:
+    name: Test
+    runs-on: ubuntu-18.04
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        dotnet: ['3.1.x']
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET Core ${{ matrix.dotnet }}
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ matrix.dotnet }}
+
+    - name: Patch docker connection string
+      run: sed -i -e 's/http:\/\/127.0.0.1:2375/unix:\/var\/run\/docker.sock/g' ${{ github.workspace }}/Source/EasyNetQ.IntegrationTests/settings.json
+
+    - name: Install dependencies
+      run: dotnet restore ${{ github.workspace }}/Source/EasyNetQ.sln
+
+    - name: Build
+      run: dotnet build ${{ github.workspace }}/Source/EasyNetQ.sln --configuration Release
+
+    - name: Tests
+      run: |
+        cd ${{ github.workspace }}/Source/EasyNetQ.Tests
+        dotnet test --configuration Release --no-build
+
+    - name: DI.Tests
+      run: |
+        cd ${{ github.workspace }}/Source/EasyNetQ.DI.Tests
+        dotnet test --configuration Release --no-build
+
+    - name: Hosepipe.Tests
+      run: |
+        cd ${{ github.workspace }}/Source/EasyNetQ.Hosepipe.Tests
+        dotnet test --configuration Release --no-build --filter "(Category!=Explicit)"
+
+    - name: Integration Tests
+      run: |
+        cd ${{ github.workspace }}/Source/EasyNetQ.IntegrationTests
+        dotnet test --configuration Release --no-build

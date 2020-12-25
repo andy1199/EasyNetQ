@@ -40,8 +40,8 @@ namespace EasyNetQ.Tests.ConsumeTests
                     })
             );
 
-            Deliver(new MyMessage {Text = "Hello Polymorphs!"});
-            Deliver(new MyOtherMessage {Text = "Hello Isomorphs!"});
+            Deliver(new MyMessage { Text = "Hello Polymorphs!" });
+            Deliver(new MyOtherMessage { Text = "Hello Isomorphs!" });
             Deliver(new Dog());
 
             if (!countdownEvent.Wait(5000)) throw new TimeoutException();
@@ -60,7 +60,7 @@ namespace EasyNetQ.Tests.ConsumeTests
 
         private void Deliver<T>(T message) where T : class
         {
-            var body = new JsonSerializer().MessageToBytes(message);
+            var body = new JsonSerializer().MessageToBytes(typeof(T), message);
             var properties = new BasicProperties
             {
                 Type = new DefaultTypeNameSerializer().Serialize(typeof(T))
